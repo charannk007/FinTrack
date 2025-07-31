@@ -26,6 +26,11 @@ pipeline {
         }
 
         stage('Provision DB & User on RDS') {
+            when {
+                not {
+                    expression { fileExists('.provisioned') }
+                }
+            }
             steps {
                 sh """
                 echo 'Creating database and granting privileges...'
@@ -35,6 +40,9 @@ pipeline {
                 GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';
                 FLUSH PRIVILEGES;
                 EOF
+
+                # Create marker file so this stage is skipped next time
+                touch .provisioned
                 """
             }
         }
