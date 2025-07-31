@@ -1,0 +1,1 @@
+npm install bcrypt body-parser ejs express express-fileupload express-session multer mysql2

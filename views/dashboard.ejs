@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - FinTrack</title>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f4f4;
+    }
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e90ff;
+      padding: 10px 30px;
+      color: white;
+    }
+    .navbar .logo {
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+    .navbar ul {
+      list-style: none;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+    }
+    .navbar ul li a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .profile-pic {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid white;
+    }
+
+    .container {
+      padding: 40px;
+      text-align: center;
+    }
+    .actions {
+      margin: 10px 0 30px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 16px;
+      border-radius: 8px;
+      background: #1e90ff;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .cards {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+    .card-link {
+      text-decoration: none;
+      color: inherit;
+    }
+    .card {
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      font-size: 1.2em;
+      min-width: 220px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: #1e90ff;
+      color: white;
+      position: fixed;
+      width: 100%;
+      bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="navbar">
+      <div class="logo">FinTrack</div>
+      <ul>
+        <li><a href="/dashboard">Dashboard</a></li>
+        <li><a href="/income">Income</a></li>
+        <li><a href="/profile">Profile</a></li>
+        <li><a href="/logout">Logout</a></li>
+        <li>
+          <% if (hasPhoto) { %>
+            <img class="profile-pic" src="/profile-picture/<%= user.id %>" alt="Profile" />
+          <% } else { %>
+            <img class="profile-pic" src="https://via.placeholder.com/36?text=U" alt="No Profile" />
+          <% } %>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1>Welcome, <%= user.name %>!</h1>
+    <p>This is your secure dashboard.</p>
+
+    <!-- Quick action -->
+    <div class="actions">
+      <a class="btn" href="/income">➕ Add / View Income</a>
+      <a class="btn" href="/expense">➖ Add / View Expense</a>
+
+    </div>
+
+    <div class="cards">
+      <!-- Make the Income card clickable -->
+      <a class="card-link" href="/income" aria-label="Go to Income">
+        <div class="card">💰 Track Income</div>
+      </a>
+
+      <!-- (Placeholder) Future features -->
+      <a class="card-link" href="/expense" aria-label="Go to Expense">
+      <div class="card">📉 Track Expenses</div>
+      </a>
+      <div class="card" title="Coming soon">📊 Analytics (Coming Soon)</div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; <%= new Date().getFullYear() %> Charan NK. All rights reserved.</p>
+  </footer>
+
+  <script>
+    if (performance.getEntriesByType("navigation")[0].type === "back_forward") {
+      location.reload(true);
+    }
+  </script>
+</body>
+</html>

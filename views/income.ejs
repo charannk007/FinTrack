@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Income - FinTrack</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 0;
+    }
+    .navbar {
+      background: #1e90ff;
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .navbar a {
+      color: white;
+      margin-left: 15px;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .container {
+      padding: 40px;
+      max-width: 900px;
+      margin: auto;
+    }
+    h2 {
+      color: #333;
+      text-align: center;
+    }
+    form {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 40px;
+    }
+    form input, form select, form textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 12px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    form button {
+      background: #1e90ff;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    th {
+      background: #f2f2f2;
+    }
+    .delete-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .total-box {
+      background: #e0f7fa;
+      padding: 15px 20px;
+      border-left: 5px solid #1e90ff;
+      border-radius: 6px;
+      margin: 20px 0;
+      font-size: 18px;
+      font-weight: bold;
+      color: #007B8A;
+    }
+
+    /* Modal Styles */
+    #confirmModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #confirmModal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .modal-buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-around;
+    }
+
+    .modal-buttons button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .modal-buttons .cancel {
+      background: #ccc;
+    }
+
+    .modal-buttons .confirm {
+      background: #dc3545;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div><strong>FinTrack</strong></div>
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/expense">Expense</a>
+      <a href="/logout">Logout</a>
+      <% if (hasPhoto) { %>
+        <img src="/profile-picture/<%= user.id %>" alt="Profile" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid white;">
+      <% } else { %>
+        <img src="https://via.placeholder.com/36?text=U" alt="No Profile" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid white;">
+      <% } %>
+    </div>
+  </div>
+
+  <div class="container">
+    <% if (message) { %>
+      <div style="background: #d4edda; color: #155724; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px;">
+        <%= message %>
+      </div>
+    <% } %>
+
+    <h2>Add Income</h2>
+    <form action="/income" method="POST">
+      <input type="number" name="amount" step="0.01" placeholder="Amount (₹)" required />
+      <input type="text" name="source" placeholder="Income Source (e.g. Freelance, Salary)" />
+      <input type="text" name="category" placeholder="Category (e.g. Job, Bonus)" />
+      <input type="date" name="date" required />
+      <textarea name="notes" rows="3" placeholder="Optional Notes..."></textarea>
+      <button type="submit">Add Income</button>
+    </form>
+
+    <h2>Income History</h2>
+
+    <form id="searchForm" action="/income" method="GET" style="margin-bottom: 25px; background: #f8f9fa; padding: 18px 20px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); display: flex; gap: 18px; flex-wrap: wrap; align-items: center;">
+      <% var _field = typeof field !== 'undefined' ? field : ''; %>
+      <% var _query = typeof query !== 'undefined' ? query : ''; %>
+      <% var _dateFrom = typeof dateFrom !== 'undefined' ? dateFrom : ''; %>
+      <% var _dateTo = typeof dateTo !== 'undefined' ? dateTo : ''; %>
+      <select name="field" id="searchField" style="flex:1; min-width:120px;" onchange="updateSearchInputs()">
+        <option value="amount" <%= _field === 'amount' ? 'selected' : '' %>>Amount</option>
+        <option value="date" <%= _field === 'date' ? 'selected' : '' %>>Date</option>
+      </select>
+      <span id="searchInputs" style="flex:2; min-width:120px; display:flex; gap:10px;">
+        <% if (_field === 'amount' || !_field) { %>
+          <input type="number" name="query" step="0.01" placeholder="Amount" value="<%= _query %>" />
+        <% } else if (_field === 'date') { %>
+          <input type="date" name="dateFrom" value="<%= _dateFrom %>" placeholder="From" />
+          <input type="date" name="dateTo" value="<%= _dateTo %>" placeholder="To" />
+        <% } %>
+      </span>
+      <button type="submit" style="background:#1e90ff; color:white; border:none; padding:8px 18px; border-radius:5px; font-weight:500;">Search</button>
+      <a href="/income" style="padding:8px 18px; border-radius:5px; background:#eee; color:#333; text-decoration:none; font-weight:500;">Reset</a>
+    </form>
+
+    <% 
+      let total = 0;
+      incomeRecords.forEach(r => total += parseFloat(r.amount) || 0);
+    %>
+    <div class="total-box">
+      Total Income: ₹<%= total.toFixed(2) %>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Amount</th>
+          <th>Source</th>
+          <th>Category</th>
+          <th>Date</th>
+          <th>Notes</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (incomeRecords.length === 0) { %>
+          <tr><td colspan="6">No records found.</td></tr>
+        <% } else { %>
+          <% incomeRecords.forEach(record => { %>
+            <tr>
+              <td>₹<%= record.amount %></td>
+              <td><%= record.source || '-' %></td>
+              <td><%= record.category || '-' %></td>
+              <td><%= record.date.toISOString().split('T')[0] %></td>
+              <td><%= record.notes || '-' %></td>
+              <td>
+                <button class="delete-btn" onclick="openConfirmModal('<%= record.id %>')">Delete</button>
+              </td>
+            </tr>
+          <% }) %>
+        <% } %>
+      </tbody>
+    </table>
+
+    <% if (message) { %>
+      <p style="color: red;"><%= message %></p>
+    <% } %>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="confirmModal">
+    <div class="modal-content">
+      <h3>Are you sure?</h3>
+      <p>This will permanently delete the income entry.</p>
+      <form id="deleteForm" method="POST">
+        <div class="modal-buttons">
+          <button type="submit" class="confirm">Delete</button>
+          <button type="button" class="cancel" onclick="closeConfirmModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openConfirmModal(id) {
+      const form = document.getElementById('deleteForm');
+      form.action = `/income/delete/${id}`;
+      document.getElementById('confirmModal').classList.add('show');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').classList.remove('show');
+    }
+
+    function updateSearchInputs() {
+      const field = document.getElementById('searchField').value;
+      const container = document.getElementById('searchInputs');
+      container.innerHTML = '';
+      if (field === 'amount') {
+        container.innerHTML = '<input type="number" name="query" step="0.01" placeholder="Amount" />';
+      } else if (field === 'date') {
+        container.innerHTML = `
+          <input type="date" name="dateFrom" placeholder="From" />
+          <input type="date" name="dateTo" placeholder="To" />
+        `;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', updateSearchInputs);
+  </script>
+</body>
+</html>
