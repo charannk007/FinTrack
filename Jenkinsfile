@@ -7,12 +7,28 @@ pipeline {
         CONTAINER_PORT = "3000"
         HOST_PORT = "3000"
         CONTAINER_NAME = "fintrack_container"
+
+        // RDS-related environment variables
+        RDS_HOST = "your-rds-endpoint.rds.amazonaws.com"
+        DB_NAME = "fintrack_db"
+        DB_USER = "admin"
+        DB_PASS = "admin123456"
+        DATABASE_SQL = "database.sql"
     }
 
     stages {
         stage('Clone Repository') {
             steps {
                 git 'https://github.com/your-username/your-fintrack-repo.git'
+            }
+        }
+
+        stage('Deploy SQL to RDS') {
+            steps {
+                sh """
+                echo 'Deploying SQL to RDS...'
+                mysql -h $RDS_HOST -u $DB_USER -p$DB_PASS $DB_NAME < $DATABASE_SQL
+                """
             }
         }
 
@@ -39,7 +55,9 @@ pipeline {
 
         stage('Push to DockerHub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([
+                    usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')
+                ]) {
                     sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
                     sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"
                 }
@@ -48,18 +66,16 @@ pipeline {
 
         stage('Run Docker Container') {
             steps {
-                // Stop and remove old container if running
                 sh "docker stop ${CONTAINER_NAME} || true"
                 sh "docker rm ${CONTAINER_NAME} || true"
 
-                // Run new container
                 sh """
                 docker run -d --name ${CONTAINER_NAME} \
                 -p ${HOST_PORT}:${CONTAINER_PORT} \
-                -e DB_HOST=your_mysql_host \
-                -e DB_USER=root \
-                -e DB_PASSWORD=root123 \
-                -e DB_NAME=hospital_db \
+                -e DB_HOST=$RDS_HOST \
+                -e DB_USER=$DB_USER \
+                -e DB_PASSWORD=$DB_PASS \
+                -e DB_NAME=$DB_NAME \
                 ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest
                 """
             }
@@ -68,10 +84,10 @@ pipeline {
 
     post {
         success {
-            echo 'FinTrack app built, pushed, and running in a container successfully!'
+            echo '✅ FinTrack deployed and running successfully!'
         }
         failure {
-            echo 'Something went wrong. Check the logs above.'
+            echo '❌ Deployment failed. Check Jenkins logs.'
         }
     }
 }
