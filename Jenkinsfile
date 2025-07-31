@@ -13,6 +13,8 @@ pipeline {
         DB_NAME = "fintrack_db"
         DB_USER = "admin"
         DB_PASS = "admin123456"
+        ROOT_USER = "root"              // RDS root user
+        ROOT_PASSWORD = "root123"       // store in Jenkins credentials ideally
         DATABASE_SQL = "database.sql"
     }
 
@@ -23,10 +25,24 @@ pipeline {
             }
         }
 
+        stage('Provision DB & User on RDS') {
+            steps {
+                sh """
+                echo 'Creating database and granting privileges...'
+                mysql -h $RDS_HOST -u $ROOT_USER -p$ROOT_PASSWORD <<EOF
+                CREATE DATABASE IF NOT EXISTS $DB_NAME;
+                CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';
+                GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';
+                FLUSH PRIVILEGES;
+                EOF
+                """
+            }
+        }
+
         stage('Deploy SQL to RDS') {
             steps {
                 sh """
-                echo 'Deploying SQL to RDS...'
+                echo 'Running schema/data SQL file on RDS...'
                 mysql -h $RDS_HOST -u $DB_USER -p$DB_PASS $DB_NAME < $DATABASE_SQL
                 """
             }
@@ -84,10 +100,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ FinTrack deployed and running successfully!'
+            echo '✅ FinTrack app built, deployed, and running in container!'
         }
         failure {
-            echo '❌ Deployment failed. Check Jenkins logs.'
+            echo '❌ Build or deploy failed. Check above logs.'
         }
     }
 }
