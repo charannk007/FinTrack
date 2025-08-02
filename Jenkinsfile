@@ -8,14 +8,15 @@ pipeline {
         HOST_PORT = "3000"
         CONTAINER_NAME = "fintrack_container"
 
-        // RDS-related environment variables
-        RDS_HOST = "your-rds-endpoint.rds.amazonaws.com"
+        // RDS credentials (admin/admin123456)
+        RDS_HOST = credentials('rds-endpoint')           // RDS endpoint
         DB_NAME = "fintrack_db"
-        DB_USER = "admin"
-        DB_PASS = "admin123456"
-        ROOT_USER = "root"              // RDS root user
-        ROOT_PASSWORD = "root123"       // store in Jenkins credentials ideally
+        DB_USER = credentials('rds-db-user')             // admin
+        DB_PASS = credentials('rds-db-pass')             // admin123456
         DATABASE_SQL = "database.sql"
+
+        // SonarQube
+        SONAR_TOKEN = credentials('sonarqube-token')     // Sonar token
     }
 
     stages {
@@ -25,7 +26,7 @@ pipeline {
             }
         }
 
-        stage('Provision DB & User on RDS') {
+        stage('Provision Database (only once)') {
             when {
                 not {
                     expression { fileExists('.provisioned') }
@@ -33,24 +34,19 @@ pipeline {
             }
             steps {
                 sh """
-                echo 'Creating database and granting privileges...'
-                mysql -h $RDS_HOST -u $ROOT_USER -p$ROOT_PASSWORD <<EOF
+                echo 'Creating database (if not exists)...'
+                mysql -h $RDS_HOST -u $DB_USER -p$DB_PASS <<EOF
                 CREATE DATABASE IF NOT EXISTS $DB_NAME;
-                CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';
-                GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';
-                FLUSH PRIVILEGES;
                 EOF
-
-                # Create marker file so this stage is skipped next time
                 touch .provisioned
                 """
             }
         }
 
-        stage('Deploy SQL to RDS') {
+        stage('Deploy SQL Schema/Data') {
             steps {
                 sh """
-                echo 'Running schema/data SQL file on RDS...'
+                echo 'Importing schema/data into RDS...'
                 mysql -h $RDS_HOST -u $DB_USER -p$DB_PASS $DB_NAME < $DATABASE_SQL
                 """
             }
@@ -62,12 +58,17 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
-            when {
-                expression { fileExists('test') }
+        stage('SonarQube Analysis') {
+            environment {
+                SONAR_SCANNER_HOME = tool 'SonarQubeScanner'
             }
             steps {
-                sh 'npm test'
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh """
+                    ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                    -Dsonar.login=$SONAR_TOKEN
+                    """
+                }
             }
         }
 
@@ -108,10 +109,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ FinTrack app built, deployed, and running in container!'
+            echo '✅ FinTrack pipeline completed successfully!'
         }
         failure {
-            echo '❌ Build or deploy failed. Check above logs.'
+            echo '❌ Pipeline failed. Please check logs.'
         }
     }
 }
