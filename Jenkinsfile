@@ -3,24 +3,23 @@ pipeline {
 
     environment {
         IMAGE_NAME       = "fintrack-app"
-        IMAGE_VERSION    = "1.0.0" // <-- Added image version
+        IMAGE_VERSION    = "1.0" 
         DOCKER_REGISTRY  = "nkcharan"
         CONTAINER_PORT   = "3000"
         HOST_PORT        = "3000"
         CONTAINER_NAME   = "fintrack"
 
         // RDS & DB credentials from Jenkins
-        RDS_HOST         = credentials('rds-endpoint')    // RDS endpoint
+        
+        RDS_HOST         = credentials('rds-endpoint')   
         DB_NAME          = "fintrack_db"
-        DB_USER          = credentials('rds-db-user')     // normal DB user
-        DB_PASS          = credentials('rds-db-pass')     // DB user password
+        DB_USER          = credentials('rds-db-user')     
+        DB_PASS          = credentials('rds-db-pass')    
         DATABASE_SQL     = "database.sql"
 
         // DockerHub credentials from Jenkins
         DOCKER_USER      = credentials('dockerhub-username')
         DOCKER_PASS      = credentials('dockerhub-password')
-
-        // SonarQube
         SONAR_TOKEN      = credentials('sonarqube-token')
     }
 
