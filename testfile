@@ -3,10 +3,10 @@ pipeline {
 
     environment {
         IMAGE_NAME = "fintrack-app"
-        DOCKER_REGISTRY = "your-dockerhub-username"
+        DOCKER_REGISTRY = "nkcharan"
         CONTAINER_PORT = "3000"
         HOST_PORT = "3000"
-        CONTAINER_NAME = "fintrack_container"
+        CONTAINER_NAME = "fintrack"
     }
 
     stages {
