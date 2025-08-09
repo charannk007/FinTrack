@@ -76,18 +76,19 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            environment {
-                SONAR_SCANNER_HOME = tool 'SonarQubeScanner'
-            }
-            steps {
-                withSonarQubeEnv('SonarQubeServer') {
-                    sh """
-                    ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
-                    -Dsonar.login=$SONAR_TOKEN
-                    """
-                }
-            }
+        environment {
+        SONAR_SCANNER_HOME = tool 'SonarQubeScanner'
         }
+             steps {
+            withSonarQubeEnv('SonarQubeServer') {
+            sh """
+            ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+              -Dsonar.login=$SONAR_TOKEN \
+              -Dsonar.host.url=$SONAR_HOST_URL
+            """
+        }
+    }
+}
 
         stage('Build Docker Image') {
             steps {
