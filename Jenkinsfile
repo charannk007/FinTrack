@@ -31,34 +31,38 @@ pipeline {
             }
         }
 
-        stage('Provision DB on RDS') {
-            when {
-                allOf {
-                    branch 'main'
-                    not { expression { fileExists('.provisioned') } }
-                }
-            }
-            steps {
-                sh """
-                echo 'Creating database on RDS...'
-                mysql -h $RDS_HOST -u $DB_USER -p$DB_PASS <<EOF
-                CREATE DATABASE IF NOT EXISTS $DB_NAME;
-                EOF
-
-                touch .provisioned
-                """
-            }
+stage('Provision DB on RDS') {
+    when {
+        allOf {
+            branch 'main'
+            not { expression { fileExists('.provisioned') } }
         }
+    }
+    steps {
+        sh """
+        echo 'Creating database and user on RDS...'
+        mysql -h $RDS_HOST -u $DB_USER -p$DB_PASS <<EOF
+        CREATE DATABASE IF NOT EXISTS $DB_NAME;
+        CREATE USER IF NOT EXISTS '$APP_DB_USER'@'%' IDENTIFIED BY '$APP_DB_PASS';
+        GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$APP_DB_USER'@'%';
+        FLUSH PRIVILEGES;
+        EOF
 
-        stage('Deploy SQL to RDS') {
-            when { branch 'main' }
-            steps {
-                sh """
-                echo 'Importing schema/data into RDS...'
-                mysql -h $RDS_HOST -u $DB_USER -p$DB_PASS $DB_NAME < $DATABASE_SQL
-                """
-            }
-        }
+        touch .provisioned
+        """
+    }
+}
+
+stage('Deploy SQL to RDS') {
+    when { branch 'main' }
+    steps {
+        sh """
+        echo 'Importing schema/data into RDS...'
+        mysql -h $RDS_HOST -u $APP_DB_USER -p$APP_DB_PASS $DB_NAME < $DATABASE_SQL
+        """
+    }
+}
+
 
         stage('Install Dependencies') {
             steps {
