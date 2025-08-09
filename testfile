@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "fintrack-app"
+        DOCKER_REGISTRY = "your-dockerhub-username"
+        CONTAINER_PORT = "3000"
+        HOST_PORT = "3000"
+        CONTAINER_NAME = "fintrack_container"
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git 'https://github.com/your-username/your-fintrack-repo.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest ."
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                sh "docker stop ${CONTAINER_NAME} || true"
+                sh "docker rm ${CONTAINER_NAME} || true"
+                sh """
+                docker run -d --name ${CONTAINER_NAME} \
+                -p ${HOST_PORT}:${CONTAINER_PORT} \
+                ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Container is up and running!'
+        }
+        failure {
+            echo '❌ Something went wrong.'
+        }
+    }
+}
