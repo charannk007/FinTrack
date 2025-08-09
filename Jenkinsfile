@@ -14,7 +14,9 @@ pipeline {
         RDS_HOST         = credentials('rds-endpoint')   
         DB_NAME          = "fintrack_db"
         DB_USER          = credentials('rds-db-user')     
-        DB_PASS          = credentials('rds-db-pass')    
+        DB_PASS          = credentials('rds-db-pass')
+        APP_DB_USER      = credentials('rds-db-user')     
+        APP_DB_PASS      = credentials('rds-db-pass')       
         DATABASE_SQL     = "database.sql"
 
         // DockerHub credentials from Jenkins
