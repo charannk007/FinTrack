@@ -79,20 +79,20 @@ stage('Deploy SQL to RDS') {
             }
         }
 
-        stage('SonarQube Analysis') {
-        environment {
-        SONAR_SCANNER_HOME = tool 'SonarQubeScanner'
-        }
-             steps {
-            withSonarQubeEnv('SonarQubeServer') {
+       stage('SonarQube Analysis') {
+    steps {
+        withSonarQubeEnv('SonarQube') {  // Matches name in Manage Jenkins → System
             sh """
-            ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
-              -Dsonar.login=$SONAR_TOKEN \
-              -Dsonar.host.url=$SONAR_HOST_URL
+                ${tool 'SonarQubeScanner'}/bin/sonar-scanner \
+                -Dsonar.projectKey=FinTrack \
+                -Dsonar.sources=. \
+                -Dsonar.host.url=http://65.0.61.136:9000 \
+                -Dsonar.login=$SONAR_TOKEN
             """
         }
     }
 }
+
 
         stage('Build Docker Image') {
             steps {
