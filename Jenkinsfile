@@ -3,10 +3,11 @@ pipeline {
 
     environment {
         IMAGE_NAME       = "fintrack-app"
-        DOCKER_REGISTRY  = "your-dockerhub-username"
+        IMAGE_VERSION    = "1.0.0" // <-- Added image version
+        DOCKER_REGISTRY  = "nkcharan"
         CONTAINER_PORT   = "3000"
         HOST_PORT        = "3000"
-        CONTAINER_NAME   = "fintrack_container"
+        CONTAINER_NAME   = "fintrack"
 
         // RDS & DB credentials from Jenkins
         RDS_HOST         = credentials('rds-endpoint')    // RDS endpoint
@@ -91,13 +92,15 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest ."
+                sh "docker build -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_VERSION} ."
             }
         }
 
         stage('Push to DockerHub') {
             steps {
                 sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+                sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_VERSION}"
+                sh "docker tag ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_VERSION} ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"
                 sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"
             }
         }
