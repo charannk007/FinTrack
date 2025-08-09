@@ -8,42 +8,51 @@ pipeline {
         HOST_PORT = "3000"
         CONTAINER_NAME = "fintrack_container"
 
-        // RDS credentials (admin/admin123456)
+        // RDS & DB credentials from Jenkins
         RDS_HOST = credentials('rds-endpoint')           // RDS endpoint
         DB_NAME = "fintrack_db"
-        DB_USER = credentials('rds-db-user')             // admin
-        DB_PASS = credentials('rds-db-pass')             // admin123456
+        DB_USER = credentials('rds-db-user')             // normal DB user
+        DB_PASS = credentials('rds-db-pass')             // DB user password
+        ROOT_USER = credentials('rds-root-user')         // root username
+        ROOT_PASSWORD = credentials('rds-root-pass')     // root password
         DATABASE_SQL = "database.sql"
 
         // SonarQube
-        SONAR_TOKEN = credentials('sonarqube-token')     // Sonar token
+        SONAR_TOKEN = credentials('sonarqube-token')
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/your-username/your-fintrack-repo.git'
+                git branch: 'main',
+                    url: 'https://github.com/charannk007/FinTrack.git'
             }
         }
 
-        stage('Provision Database (only once)') {
+        stage('Provision DB & User on RDS') {
             when {
-                not {
-                    expression { fileExists('.provisioned') }
+                allOf {
+                    branch 'main'
+                    not { expression { fileExists('.provisioned') } }
                 }
             }
             steps {
                 sh """
-                echo 'Creating database (if not exists)...'
-                mysql -h $RDS_HOST -u $DB_USER -p$DB_PASS <<EOF
+                echo 'Creating database and granting privileges on RDS...'
+                mysql -h $RDS_HOST -u $ROOT_USER -p$ROOT_PASSWORD <<EOF
                 CREATE DATABASE IF NOT EXISTS $DB_NAME;
+                CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS';
+                GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';
+                FLUSH PRIVILEGES;
                 EOF
+
                 touch .provisioned
                 """
             }
         }
 
-        stage('Deploy SQL Schema/Data') {
+        stage('Deploy SQL to RDS') {
+            when { branch 'main' }
             steps {
                 sh """
                 echo 'Importing schema/data into RDS...'
@@ -55,6 +64,15 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh 'npm install'
+            }
+        }
+
+        stage('Run Tests') {
+            when {
+                expression { fileExists('test') }
+            }
+            steps {
+                sh 'npm test'
             }
         }
 
@@ -86,23 +104,6 @@ pipeline {
                     sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
                     sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest"
                 }
-            }
-        }
-
-        stage('Run Docker Container') {
-            steps {
-                sh "docker stop ${CONTAINER_NAME} || true"
-                sh "docker rm ${CONTAINER_NAME} || true"
-
-                sh """
-                docker run -d --name ${CONTAINER_NAME} \
-                -p ${HOST_PORT}:${CONTAINER_PORT} \
-                -e DB_HOST=$RDS_HOST \
-                -e DB_USER=$DB_USER \
-                -e DB_PASSWORD=$DB_PASS \
-                -e DB_NAME=$DB_NAME \
-                ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest
-                """
             }
         }
     }
