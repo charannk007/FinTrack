@@ -1,19 +1,14 @@
 npm install bcrypt body-parser ejs express express-fileupload express-session multer mysql2
-
 Ensure these credentials exist in Jenkins under Manage Jenkins → Credentials:
-
 rds-endpoint (Secret Text)
-
 rds-db-user (admin)
-
 rds-db-pass (admin123456)
-
 rds-root-user (root)
-
 rds-root-pass (root123)
-
 sonarqube-token (from SonarQube account)
-
 dockerhub-credentials (DockerHub ID & password)
-
 Make sure SonarQubeScanner is added in Global Tools Configuration.
+
+CREATE USER 'charan'@'%' IDENTIFIED BY 'charan1123';
+GRANT ALL PRIVILEGES ON *.* TO 'charan'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
