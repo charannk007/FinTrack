@@ -12,3 +12,6 @@ Make sure SonarQubeScanner is added in Global Tools Configuration.
 CREATE USER 'charan'@'%' IDENTIFIED BY 'charan1123';
 GRANT ALL PRIVILEGES ON *.* TO 'charan'@'%' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
+------------------------
+GRANT ALL PRIVILEGES ON fintrack_db.* TO 'charan'@'%';
+FLUSH PRIVILEGES;
