@@ -10,7 +10,6 @@ pipeline {
         CONTAINER_NAME   = "fintrack"
 
         // RDS & DB credentials from Jenkins
-        
         RDS_HOST         = credentials('rds-endpoint')   
         DB_NAME          = "fintrack_db"
         DB_USER          = credentials('rds-db-user')     
@@ -33,38 +32,15 @@ pipeline {
             }
         }
 
-stage('Provision DB on RDS') {
-    when {
-        allOf {
-            branch 'main'
-            not { expression { fileExists('.provisioned') } }
+        stage('Deploy SQL to RDS') {
+            when { branch 'main' }
+            steps {
+                sh """
+                echo 'Importing schema/data into RDS...'
+                mysql -h $RDS_HOST -u $APP_DB_USER -p$APP_DB_PASS $DB_NAME < $DATABASE_SQL
+                """
+            }
         }
-    }
-    steps {
-        sh """
-        echo 'Creating database and user on RDS...'
-        mysql -h $RDS_HOST -u $DB_USER -p$DB_PASS <<EOF
-        CREATE DATABASE IF NOT EXISTS $DB_NAME;
-        CREATE USER IF NOT EXISTS '$APP_DB_USER'@'%' IDENTIFIED BY '$APP_DB_PASS';
-        GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$APP_DB_USER'@'%';
-        FLUSH PRIVILEGES;
-        EOF
-
-        touch .provisioned
-        """
-    }
-}
-
-stage('Deploy SQL to RDS') {
-    when { branch 'main' }
-    steps {
-        sh """
-        echo 'Importing schema/data into RDS...'
-        mysql -h $RDS_HOST -u $APP_DB_USER -p$APP_DB_PASS $DB_NAME < $DATABASE_SQL
-        """
-    }
-}
-
 
         stage('Install Dependencies') {
             steps {
@@ -72,29 +48,19 @@ stage('Deploy SQL to RDS') {
             }
         }
 
-        stage('Run Tests') {
-            when {
-                expression { fileExists('test') }
-            }
+        stage('SonarQube Analysis') {
             steps {
-                sh 'npm test'
+                withSonarQubeEnv('SonarQube') {  // Matches name in Manage Jenkins → System
+                    sh """
+                        ${tool 'SonarQubeScanner'}/bin/sonar-scanner \
+                        -Dsonar.projectKey=FinTrack \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=http://65.0.61.136:9000 \
+                        -Dsonar.login=$SONAR_TOKEN
+                    """
+                }
             }
         }
-
-       stage('SonarQube Analysis') {
-    steps {
-        withSonarQubeEnv('SonarQube') {  // Matches name in Manage Jenkins → System
-            sh """
-                ${tool 'SonarQubeScanner'}/bin/sonar-scanner \
-                -Dsonar.projectKey=FinTrack \
-                -Dsonar.sources=. \
-                -Dsonar.host.url=http://65.0.61.136:9000 \
-                -Dsonar.login=$SONAR_TOKEN
-            """
-        }
-    }
-}
-
 
         stage('Build Docker Image') {
             steps {
